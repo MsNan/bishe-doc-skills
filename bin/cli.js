@@ -45,13 +45,21 @@ function parseArgs(argv, cwd = process.cwd()) {
   return o
 }
 
+function unquote(v) {
+  if (/^".*"$/.test(v)) { try { return JSON.parse(v) } catch { return v.slice(1, -1) } }
+  return v
+}
+
+// YAML 双引号字符串（JSON 字符串是合法的 YAML），避免 description 里的 ": "、"#"、引号破坏 frontmatter
+const yamlStr = v => JSON.stringify(String(v))
+
 function parseSkill(file) {
   const raw = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
   const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
   const meta = {}
   if (m) for (const line of m[1].split('\n')) {
     const i = line.indexOf(':')
-    if (i > 0) meta[line.slice(0, i).trim()] = line.slice(i + 1).trim().replace(/^"(.*)"$/, '$1')
+    if (i > 0) meta[line.slice(0, i).trim()] = unquote(line.slice(i + 1).trim())
   }
   return { meta, body: m ? m[2] : raw }
 }
@@ -67,13 +75,21 @@ function write(file, content, force, stats) {
   stats.written.push(file)
 }
 
-function upsertAgentsBlock(file, lines) {
+// 合并而不是覆盖：保留之前分批安装的技能条目（按技能名去重、排序）；内容不变时不写文件。返回是否写入
+function upsertAgentsBlock(file, entries) {
   const start = `<!-- ${MARK}:start -->`, end = `<!-- ${MARK}:end -->`
-  const block = `${start}\n## 毕设文档技能\n写开题报告、论文章节、测试或答辩材料前，先阅读对应技能文件：\n${lines.join('\n')}\n${end}\n`
   let cur = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''
   const re = new RegExp(`${start}[\\s\\S]*?${end}\\n?`)
-  cur = re.test(cur) ? cur.replace(re, block) : (cur ? cur.replace(/\n*$/, '\n\n') : '') + block
-  fs.writeFileSync(file, cur)
+  const old = cur.match(re)
+  const map = new Map()
+  if (old) for (const m of old[0].matchAll(/^- `([^`]+)`.*$/gm)) map.set(m[1], m[0])
+  for (const [n, line] of entries) map.set(n, line)
+  const lines = [...map.keys()].sort().map(k => map.get(k))
+  const block = `${start}\n## 毕设文档技能\n写开题报告、论文章节、测试或答辩材料前，先阅读对应技能文件：\n${lines.join('\n')}\n${end}\n`
+  const next = old ? cur.replace(re, () => block) : (cur ? cur.replace(/\n*$/, '\n\n') : '') + block
+  if (next === cur) return false
+  fs.writeFileSync(file, next)
+  return true
 }
 
 function install(o, { skillsDir = SKILLS_DIR, home = os.homedir() } = {}) {
@@ -90,25 +106,24 @@ function install(o, { skillsDir = SKILLS_DIR, home = os.homedir() } = {}) {
   for (const n of names) {
     const { meta, body } = parseSkill(path.join(skillsDir, n, 'SKILL.md'))
     const desc = meta.description || n
-    const skillMd = `---\nname: ${n}\ndescription: ${desc}\n---\n${body}`
+    const skillMd = `---\nname: ${n}\ndescription: ${yamlStr(desc)}\n---\n${body}`
     for (const t of tools) {
       if (t === 'claude') {
         const base = o.global ? path.join(home, '.claude', 'skills') : path.join(o.dir, '.claude', 'skills')
         write(path.join(base, n, 'SKILL.md'), skillMd, o.force, stats)
       } else if (t === 'cursor') {
-        write(path.join(o.dir, '.cursor', 'rules', `${n}.mdc`), `---\ndescription: ${desc}\nglobs:\nalwaysApply: false\n---\n${body}`, o.force, stats)
+        write(path.join(o.dir, '.cursor', 'rules', `${n}.mdc`), `---\ndescription: ${yamlStr(desc)}\nglobs:\nalwaysApply: false\n---\n${body}`, o.force, stats)
       } else if (t === 'trae') {
         write(path.join(o.dir, '.trae', 'rules', `${n}.md`), `<!-- ${desc} -->\n${body}`, o.force, stats)
       } else if (t === 'codex') {
         write(path.join(o.dir, '.agents', 'skills', n, 'SKILL.md'), skillMd, o.force, stats)
-        agentsLines.push(`- \`${n}\`：${desc}（详见 .agents/skills/${n}/SKILL.md）`)
+        agentsLines.push([n, `- \`${n}\`：${desc}（详见 .agents/skills/${n}/SKILL.md）`])
       }
     }
   }
   if (agentsLines.length) {
     const f = path.join(o.dir, 'AGENTS.md')
-    upsertAgentsBlock(f, agentsLines)
-    stats.written.push(f)
+    if (upsertAgentsBlock(f, agentsLines)) stats.written.push(f)
   }
   return stats
 }

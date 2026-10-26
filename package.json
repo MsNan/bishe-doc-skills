@@ -1,6 +1,6 @@
 {
   "name": "bishe-doc-skills",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "毕业设计文档 AI 技能包：开题报告、需求分析、系统设计、论文规范(GB/T 7714)、系统测试、答辩准备；一键安装到 Claude Code / Cursor / Trae / Codex",
   "bin": { "bishe-doc-skills": "bin/cli.js" },
   "files": ["bin", "skills"],

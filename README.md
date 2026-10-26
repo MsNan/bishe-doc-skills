@@ -49,7 +49,7 @@ npx -y github:MsNan/bishe-doc-skills --list                          # 查看全
 | Trae | `.trae/rules/<name>.md` |
 | Codex / 其他 Agent | `.agents/skills/<name>/SKILL.md` + `AGENTS.md` 索引 |
 
-已存在的文件默认跳过，加 `--force` 覆盖；`AGENTS.md` 里你自己的内容会保留，重复安装只更新本工具的区块。
+已存在的文件默认跳过，加 `--force` 覆盖；`AGENTS.md` 里你自己的内容会保留，重复安装只更新本工具的区块；用 `--skills` 分批安装时，索引会累积之前装过的技能。
 
 ### 技能列表
 

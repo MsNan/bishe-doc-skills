@@ -83,3 +83,38 @@ test('命令行：通过软链接调用也能运行（模拟 npx），错误时�
   assert.match(r.stderr, /未知参数/)
   assert.match(execFileSync(process.execPath, [CLI, '--list'], { encoding: 'utf8' }), /defense-prep/)
 })
+
+test('-s 分批安装：AGENTS.md 索引累积而不是被覆盖，内容不变时不重写', () => {
+  const dir = tmp()
+  const f = path.join(dir, 'AGENTS.md')
+  install({ tool: 'codex', skills: ['thesis-proposal'], dir })
+  install({ tool: 'codex', skills: ['test-chapter'], dir })
+  let txt = fs.readFileSync(f, 'utf8')
+  assert.match(txt, /`thesis-proposal`/)
+  assert.match(txt, /`test-chapter`/)
+  // 再装一次同样的技能（文件全部跳过）：AGENTS.md 不应被重写，也不计入 written
+  const mtime = fs.statSync(f).mtimeMs
+  fs.utimesSync(f, new Date(1000), new Date(1000))
+  const s = install({ tool: 'codex', skills: ['test-chapter'], dir })
+  assert.strictEqual(s.written.length, 0)
+  assert.strictEqual(fs.statSync(f).mtimeMs, 1000)
+  assert.ok(mtime > 1000)
+  // 索引按技能名排序、每个技能只出现一次
+  install({ tool: 'codex', skills: ['test-chapter', 'defense-prep'], dir, force: true })
+  txt = fs.readFileSync(f, 'utf8')
+  assert.strictEqual(txt.match(/`test-chapter`/g).length, 1)
+  const order = [...txt.matchAll(/^- `([a-z-]+)`/gm)].map(m => m[1])
+  assert.deepStrictEqual(order, [...order].sort())
+  assert.strictEqual(order.length, 3)
+})
+
+test('description 以 YAML 双引号字符串写出，含冒号等特殊字符也能被正确解析', () => {
+  const src = tmp(), dir = tmp()
+  fs.mkdirSync(path.join(src, 'demo-skill'))
+  fs.writeFileSync(path.join(src, 'demo-skill', 'SKILL.md'), '---\nname: demo-skill\ndescription: 用法: 写 "论文" #1 时使用\n---\n正文\n')
+  install({ tool: 'claude,cursor', skills: null, dir }, { skillsDir: src })
+  for (const f of ['.claude/skills/demo-skill/SKILL.md', '.cursor/rules/demo-skill.mdc']) {
+    const line = fs.readFileSync(path.join(dir, f), 'utf8').split('\n').find(l => l.startsWith('description:'))
+    assert.strictEqual(JSON.parse(line.slice('description:'.length).trim()), '用法: 写 "论文" #1 时使用')
+  }
+})
