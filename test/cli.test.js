@@ -118,3 +118,35 @@ test('description 以 YAML 双引号字符串写出，含冒号等特殊字符�
     assert.strictEqual(JSON.parse(line.slice('description:'.length).trim()), '用法: 写 "论文" #1 时使用')
   }
 })
+
+test('AGENTS.md 标记不成对时报错且一个文件都不写，用户内容保留', () => {
+  const dir = tmp()
+  const f = path.join(dir, 'AGENTS.md')
+  fs.writeFileSync(f, '<!-- bishe-doc-skills:start -->\n- `x`：旧\n\n## 我的规则\n不要改 dist\n')
+  assert.throws(() => install({ tool: 'codex', skills: ['test-chapter'], dir }), /不成对/)
+  assert.match(fs.readFileSync(f, 'utf8'), /不要改 dist/)
+  assert.ok(!fs.existsSync(path.join(dir, '.agents')))
+})
+
+test('代码块里和行内提到的标记不算区块', () => {
+  const dir = tmp()
+  const f = path.join(dir, 'AGENTS.md')
+  const head = '# 项目\n别手改 `<!-- bishe-doc-skills:start -->` 之后的内容\n```md\n<!-- bishe-doc-skills:start -->\n示例\n<!-- bishe-doc-skills:end -->\n```\n'
+  fs.writeFileSync(f, head)
+  install({ tool: 'codex', skills: ['thesis-proposal'], dir })
+  install({ tool: 'codex', skills: ['test-chapter'], dir })
+  const txt = fs.readFileSync(f, 'utf8')
+  assert.ok(txt.startsWith(head))
+  assert.match(txt.slice(head.length), /thesis-proposal[\s\S]*test-chapter|test-chapter[\s\S]*thesis-proposal/)
+})
+
+test('CRLF 的 AGENTS.md 更新后仍全是 CRLF', () => {
+  const dir = tmp()
+  const f = path.join(dir, 'AGENTS.md')
+  install({ tool: 'codex', skills: ['thesis-proposal'], dir })
+  fs.writeFileSync(f, ('# 项目\n' + fs.readFileSync(f, 'utf8')).replace(/\n/g, '\r\n'))
+  install({ tool: 'codex', skills: ['test-chapter'], dir })
+  const txt = fs.readFileSync(f, 'utf8')
+  assert.strictEqual(/[^\r]\n/.test(txt), false)
+  assert.match(txt, /test-chapter/)
+})
