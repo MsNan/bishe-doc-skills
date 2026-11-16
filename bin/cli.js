@@ -14,6 +14,9 @@ const HELP = `bishe-doc-skills - 把毕设文档写作技能装进你的项目�
 
 选项:
   -t, --tool <名称>   claude | cursor | trae | codex | all（默认 all，可逗号分隔）
+                      默认 all 会装 Claude/Trae/Codex；因 Cursor 会读取
+                      .claude/skills 与 .agents/skills，不再重复写 .cursor/rules。
+                      只需 Cursor 时请用 --tool cursor。
   -s, --skills <列表> 只安装指定技能，逗号分隔（默认全部）
   -d, --dir <路径>    目标项目目录（默认当前目录）
   -g, --global        Claude Code 安装到 ~/.claude/skills（对所有项目生效）
@@ -137,7 +140,10 @@ function install(o, { skillsDir = SKILLS_DIR, home = os.homedir() } = {}) {
 
   // 先检查 AGENTS.md 标记，出错时一个文件都不写
   if (tools.includes('codex')) { const f = path.join(o.dir, 'AGENTS.md'); if (fs.existsSync(f)) findAgentsBlock(fs.readFileSync(f, 'utf8')) }
-  const stats = { written: [], skipped: [], tools, names }
+  // Cursor 官方文档（https://cursor.com/docs/skills）：除 .cursor/skills 外，
+  // 还会兼容加载 .claude/skills 与 .agents/skills。同时写入 .cursor/rules 会让同一套内容出现两次。
+  const cursorCompatSkip = tools.includes('cursor') && (tools.includes('claude') || tools.includes('codex'))
+  const stats = { written: [], skipped: [], tools, names, cursorCompatSkip, staleCursorRules: [] }
   const agentsLines = []
   for (const n of names) {
     const { meta, body } = parseSkill(path.join(skillsDir, n, 'SKILL.md'))
@@ -148,6 +154,11 @@ function install(o, { skillsDir = SKILLS_DIR, home = os.homedir() } = {}) {
         const base = o.global ? path.join(home, '.claude', 'skills') : path.join(o.dir, '.claude', 'skills')
         write(path.join(base, n, 'SKILL.md'), skillMd, o.force, stats)
       } else if (t === 'cursor') {
+        if (cursorCompatSkip) {
+          const stale = path.join(o.dir, '.cursor', 'rules', `${n}.mdc`)
+          if (fs.existsSync(stale)) stats.staleCursorRules.push(stale)
+          continue
+        }
         write(path.join(o.dir, '.cursor', 'rules', `${n}.mdc`), `---\ndescription: ${yamlStr(desc)}\nglobs:\nalwaysApply: false\n---\n${body}`, o.force, stats)
       } else if (t === 'trae') {
         write(path.join(o.dir, '.trae', 'rules', `${n}.md`), `<!-- ${desc} -->\n${body}`, o.force, stats)
@@ -175,6 +186,16 @@ function main(argv = process.argv.slice(2)) {
     const s = install(o)
     console.log(`✅ 已写入 ${s.written.length} 个文件（工具: ${s.tools.join(', ')}，技能: ${s.names.length} 个）`)
     if (s.skipped.length) console.log(`⏭️  跳过 ${s.skipped.length} 个已存在文件，加 --force 覆盖`)
+    if (s.cursorCompatSkip) {
+      console.log('ℹ️  未写入 .cursor/rules：按 Cursor 官方文档，Cursor 会从 .claude/skills/ 和 .agents/skills/ 加载技能（https://cursor.com/docs/skills）。只需 Cursor 时请用 --tool cursor。')
+      if (s.tools.includes('claude') && s.tools.includes('codex')) {
+        console.log('ℹ️  同时安装了 Claude 与 Codex 技能目录时，Cursor 可能把同一技能显示两次；主要用 Cursor 请改用 --tool cursor。')
+      }
+    }
+    if (s.staleCursorRules && s.staleCursorRules.length) {
+      console.log(`⚠️  检测到先前安装留下的 ${s.staleCursorRules.length} 个 .cursor/rules 文件，Cursor 还会从技能目录加载同一内容，建议删掉以免重复：`)
+      for (const f of s.staleCursorRules) console.log('   ' + f)
+    }
     console.log('☕ 觉得有用欢迎 Star: https://github.com/MsNan/bishe-doc-skills')
   } catch (e) {
     if (e instanceof CliError) { console.error(e.message); process.exitCode = 1 } else throw e
