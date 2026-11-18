@@ -37,6 +37,8 @@ npx -y github:MsNan/bishe-doc-skills
 只装给某个工具，或只装部分技能：
 
 ```bash
+npx -y github:MsNan/bishe-doc-skills --tool cursor                   # 写入 .cursor/skills
+npx -y github:MsNan/bishe-doc-skills --tool cursor --global          # 装到 ~/.cursor/skills，所有项目可用
 npx -y github:MsNan/bishe-doc-skills --tool claude --global          # 装到 ~/.claude/skills，所有项目可用
 npx -y github:MsNan/bishe-doc-skills --tool cursor,trae --skills thesis-writing,test-chapter
 npx -y github:MsNan/bishe-doc-skills --list                          # 查看全部技能
@@ -45,11 +47,11 @@ npx -y github:MsNan/bishe-doc-skills --list                          # 查看全
 | 工具 | 安装位置 |
 | --- | --- |
 | Claude Code | `.claude/skills/<name>/SKILL.md` |
-| Cursor（`--tool cursor`） | `.cursor/rules/<name>.mdc` |
+| Cursor（`--tool cursor`） | `.cursor/skills/<name>/SKILL.md`（源文件可选 `globs` 会写成官方 `paths`） |
 | Trae | `.trae/rules/<name>.md` |
 | Codex / 其他 Agent | `.agents/skills/<name>/SKILL.md` + `AGENTS.md` 索引 |
 
-默认 `--tool all` **不会**再写入 `.cursor/rules`。按 [Cursor 官方文档](https://cursor.com/docs/skills)，Cursor 会兼容加载 `.claude/skills/` 和 `.agents/skills/`，再写一份 Cursor 规则会让同一套内容出现两次。只需 Cursor 时请用 `--tool cursor`。若仓库里同时有 `.claude/skills` 和 `.agents/skills`，Cursor 仍可能把同一技能显示两次（Claude Code 与 Codex 各自需要自己的目录，目前无法完全避免）；主要用 Cursor 时建议只装 `--tool cursor`。以前用 `all` 装过、项目里还留着本技能包的 `.cursor/rules/*.mdc`，可以自行删掉以免重复，安装器不会自动删除。
+默认 `--tool all` **不会**再写入 `.cursor/skills`。按 [Cursor 官方文档](https://cursor.com/docs/skills)，Cursor 会兼容加载 `.claude/skills/` 和 `.agents/skills/`，再写一份 Cursor 技能会让同一套内容出现两次。只需 Cursor 时请用 `--tool cursor`（写入官方 `.cursor/skills/<name>/SKILL.md`；加 `--global` 则装到 `~/.cursor/skills`）。若仓库里同时有 `.claude/skills` 和 `.agents/skills`，Cursor 仍可能把同一技能显示两次（Claude Code 与 Codex 各自需要自己的目录，目前无法完全避免）；主要用 Cursor 时建议只装 `--tool cursor`。以前用本安装器写过 `.cursor/rules/*.mdc` 的，可以自行删掉以免和技能重复，安装器不会自动删除。
 
 已存在的文件默认跳过，加 `--force` 覆盖；`AGENTS.md` 里你自己的内容会保留，重复安装只更新本工具的区块；用 `--skills` 分批安装时，索引会累积之前装过的技能。
 
@@ -87,7 +89,7 @@ npx -y github:MsNan/bishe-doc-skills --list                          # 查看全
 npm test   # 校验技能 frontmatter + 运行安装器测试
 ```
 
-欢迎 PR 补充更多学校通用的规范。新技能放在 `skills/<小写-短横线名>/SKILL.md`，frontmatter 需有 `name`（与目录一致）和说明使用时机的 `description`。
+欢迎 PR 补充更多学校通用的规范。新技能放在 `skills/<小写-短横线名>/SKILL.md`，frontmatter 需有 `name`（与目录一致）和说明使用时机的 `description`，可选 `globs`。安装到 Cursor 时会把 `globs` 写成官方 `paths` 列表，没有则不写该字段。
 
 ## English
 
@@ -97,12 +99,13 @@ Install into any project for Claude Code, Cursor, Trae, or Codex (`AGENTS.md`):
 
 ```bash
 npx -y github:MsNan/bishe-doc-skills                 # Claude / Trae / Codex, all skills
-npx -y github:MsNan/bishe-doc-skills --tool cursor   # Cursor rules only
+npx -y github:MsNan/bishe-doc-skills --tool cursor   # official Cursor skills
+npx -y github:MsNan/bishe-doc-skills --tool cursor --global
 npx -y github:MsNan/bishe-doc-skills --tool claude --global
 npx -y github:MsNan/bishe-doc-skills --list
 ```
 
-Default `--tool all` no longer writes `.cursor/rules`, because Cursor also loads `.claude/skills/` and `.agents/skills/` ([docs](https://cursor.com/docs/skills)). Use `--tool cursor` if you only need Cursor.
+Default `--tool all` no longer writes `.cursor/skills`, because Cursor also loads `.claude/skills/` and `.agents/skills/` ([docs](https://cursor.com/docs/skills)). Use `--tool cursor` if you only need Cursor (writes official `.cursor/skills/<name>/SKILL.md`; `--global` installs to `~/.cursor/skills`). Optional source `globs` become official `paths`.
 
 The skills tell the AI to extract facts from your real code first (`code-to-thesis`), and never to invent references, test results, data, or screenshots. They are a writing aid for your own work, not a ghostwriting tool; follow your university's rules on AI-assisted writing.
 

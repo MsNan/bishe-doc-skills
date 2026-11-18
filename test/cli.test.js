@@ -37,12 +37,22 @@ test('全量安装写入 Claude/Trae/Codex，不再重复写 Cursor 规则', () 
   assert.ok(!fs.existsSync(path.join(dir, '.cursor/skills')))
 })
 
-test('只装 Cursor 时仍写入 .cursor/rules，globs 为空', () => {
+test('Cursor 技能写入 .cursor/skills；没有 globs 时不写 paths，有 globs 时转为官方 paths 列表', () => {
   const dir = tmp()
   const s = install({ tool: 'cursor', skills: ['system-design'], dir })
   assert.notStrictEqual(s.cursorCompatSkip, true)
-  const mdc = fs.readFileSync(path.join(dir, '.cursor/rules/system-design.mdc'), 'utf8')
-  assert.match(mdc, /^---\ndescription: .+\nglobs:\nalwaysApply: false\n---\n/)
+  const skill = fs.readFileSync(path.join(dir, '.cursor/skills/system-design/SKILL.md'), 'utf8')
+  assert.match(skill, /^---\nname: system-design\ndescription: ".+"\n---\n/)
+  assert.doesNotMatch(skill, /^paths:/m)
+  assert.ok(!fs.existsSync(path.join(dir, '.cursor/rules')))
+
+  const src = tmp()
+  fs.mkdirSync(path.join(src, 'demo-skill'))
+  fs.writeFileSync(path.join(src, 'demo-skill', 'SKILL.md'), '---\nname: demo-skill\ndescription: 带 globs 的演示技能\nglobs: "**/*.md,docs/**/*.docx"\n---\n正文\n')
+  const dir2 = tmp()
+  install({ tool: 'cursor', skills: null, dir: dir2 }, { skillsDir: src })
+  const withPaths = fs.readFileSync(path.join(dir2, '.cursor/skills/demo-skill/SKILL.md'), 'utf8')
+  assert.match(withPaths, /^---\nname: demo-skill\ndescription: ".+"\npaths:\n  - "\*\*\/\*\.md"\n  - "docs\/\*\*\/\*\.docx"\n---\n/)
 })
 
 test('已存在文件默认跳过，--force 覆盖', () => {
@@ -122,10 +132,10 @@ test('description 以 YAML 双引号字符串写出，含冒号等特殊字符�
   const src = tmp(), dir = tmp()
   fs.mkdirSync(path.join(src, 'demo-skill'))
   fs.writeFileSync(path.join(src, 'demo-skill', 'SKILL.md'), '---\nname: demo-skill\ndescription: 用法: 写 "论文" #1 时使用\n---\n正文\n')
-  // 分开装：同时指定 cursor+claude 时不再写 .cursor/rules（Cursor 会读 .claude/skills）
+  // 分开装：同时指定 cursor+claude 时不再写 .cursor/skills（Cursor 会读 .claude/skills）
   install({ tool: 'claude', skills: null, dir }, { skillsDir: src })
   install({ tool: 'cursor', skills: null, dir }, { skillsDir: src })
-  for (const f of ['.claude/skills/demo-skill/SKILL.md', '.cursor/rules/demo-skill.mdc']) {
+  for (const f of ['.claude/skills/demo-skill/SKILL.md', '.cursor/skills/demo-skill/SKILL.md']) {
     const line = fs.readFileSync(path.join(dir, f), 'utf8').split('\n').find(l => l.startsWith('description:'))
     assert.strictEqual(JSON.parse(line.slice('description:'.length).trim()), '用法: 写 "论文" #1 时使用')
   }
@@ -163,23 +173,24 @@ test('CRLF 的 AGENTS.md 更新后仍全是 CRLF', () => {
   assert.match(txt, /test-chapter/)
 })
 
-test('同时装 Cursor 和 Claude/Codex 时不写 .cursor/rules；只和 Trae 一起装时仍写入', () => {
+test('同时装 Cursor 和 Claude/Codex 时不写 .cursor/skills；只和 Trae 一起装时仍写入', () => {
   const dir1 = tmp()
   const s1 = install({ tool: 'cursor,claude', skills: ['thesis-proposal'], dir: dir1 })
   assert.strictEqual(s1.cursorCompatSkip, true)
   assert.ok(fs.existsSync(path.join(dir1, '.claude/skills/thesis-proposal/SKILL.md')))
-  assert.ok(!fs.existsSync(path.join(dir1, '.cursor/rules')))
+  assert.ok(!fs.existsSync(path.join(dir1, '.cursor')))
 
   const dir2 = tmp()
   const s2 = install({ tool: 'cursor,codex', skills: ['thesis-proposal'], dir: dir2 })
   assert.strictEqual(s2.cursorCompatSkip, true)
   assert.ok(fs.existsSync(path.join(dir2, '.agents/skills/thesis-proposal/SKILL.md')))
-  assert.ok(!fs.existsSync(path.join(dir2, '.cursor/rules')))
+  assert.ok(!fs.existsSync(path.join(dir2, '.cursor')))
 
   const dir3 = tmp()
   const s3 = install({ tool: 'cursor,trae', skills: ['thesis-proposal'], dir: dir3 })
   assert.notStrictEqual(s3.cursorCompatSkip, true)
-  assert.ok(fs.existsSync(path.join(dir3, '.cursor/rules/thesis-proposal.mdc')))
+  assert.ok(fs.existsSync(path.join(dir3, '.cursor/skills/thesis-proposal/SKILL.md')))
+  assert.ok(!fs.existsSync(path.join(dir3, '.cursor/rules')))
   assert.ok(fs.existsSync(path.join(dir3, '.trae/rules/thesis-proposal.md')))
 })
 
@@ -193,11 +204,33 @@ test('同时装 Claude/Codex 时若已有旧的 .cursor/rules，列入 staleCurs
   assert.strictEqual(fs.readFileSync(stale, 'utf8'), 'old rule')
 })
 
-test('命令行 --tool all 会提示未写入 Cursor 规则', () => {
+test('命令行 --tool all 会提示未写入 Cursor 技能', () => {
   const dir = tmp()
   const out = execFileSync(process.execPath, [CLI, '-t', 'all', '-s', 'thesis-proposal', '-d', dir], { encoding: 'utf8' })
-  assert.match(out, /未写入 \.cursor\/rules/)
+  assert.match(out, /未写入 \.cursor\/skills/)
   assert.match(out, /cursor\.com\/docs\/skills/)
-  assert.ok(!fs.existsSync(path.join(dir, '.cursor/rules')))
+  assert.ok(!fs.existsSync(path.join(dir, '.cursor')))
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/thesis-proposal/SKILL.md')))
+})
+
+test('--global 把 Cursor 技能装到 ~/.cursor/skills，不写项目目录和旧规则格式', () => {
+  const dir = tmp(), home = tmp()
+  install({ tool: 'cursor', skills: ['system-design'], dir, global: true }, { home })
+  const f = path.join(home, '.cursor/skills/system-design/SKILL.md')
+  assert.ok(fs.existsSync(f))
+  assert.match(fs.readFileSync(f, 'utf8'), /^---\nname: system-design\ndescription: ".+"\n---\n/)
+  assert.doesNotMatch(fs.readFileSync(f, 'utf8'), /^paths:/m)
+  assert.ok(!fs.existsSync(path.join(dir, '.cursor')))
+  assert.ok(!fs.existsSync(path.join(home, '.cursor/rules')))
+})
+
+test('只装 Cursor 时若已有旧的 .cursor/rules，列入 staleCursorRules 但不自动删除', () => {
+  const dir = tmp()
+  const stale = path.join(dir, '.cursor/rules/thesis-proposal.mdc')
+  fs.mkdirSync(path.dirname(stale), { recursive: true })
+  fs.writeFileSync(stale, 'old rule')
+  const s = install({ tool: 'cursor', skills: ['thesis-proposal'], dir })
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/thesis-proposal/SKILL.md')))
+  assert.deepStrictEqual(s.staleCursorRules, [stale])
+  assert.strictEqual(fs.readFileSync(stale, 'utf8'), 'old rule')
 })

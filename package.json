@@ -6,7 +6,7 @@
   "files": ["bin", "skills"],
   "scripts": { "check": "node bin/check.js", "test": "node bin/check.js && node --test" },
   "engines": { "node": ">=18" },
-  "keywords": ["毕业设计", "毕设", "论文", "开题报告", "答辩", "claude-code", "skills", "cursor-rules", "trae", "codex"],
+  "keywords": ["毕业设计", "毕设", "论文", "开题报告", "答辩", "claude-code", "skills", "cursor-skills", "cursor-rules", "trae", "codex"],
   "repository": "github:MsNan/bishe-doc-skills",
   "author": "Theo（涛哥）",
   "license": "MIT"
