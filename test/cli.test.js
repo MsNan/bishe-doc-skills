@@ -234,3 +234,22 @@ test('只装 Cursor 时若已有旧的 .cursor/rules，列入 staleCursorRules �
   assert.deepStrictEqual(s.staleCursorRules, [stale])
   assert.strictEqual(fs.readFileSync(stale, 'utf8'), 'old rule')
 })
+
+test('Cursor 插件清单符合官方 schema，source 为仓库根目录，技能仍在 skills/', () => {
+  const root = path.join(__dirname, '..')
+  const plugin = JSON.parse(fs.readFileSync(path.join(root, '.cursor-plugin/plugin.json'), 'utf8'))
+  const market = JSON.parse(fs.readFileSync(path.join(root, '.cursor-plugin/marketplace.json'), 'utf8'))
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
+  assert.strictEqual(plugin.name, pkg.name)
+  assert.strictEqual(plugin.version, pkg.version)
+  assert.strictEqual(plugin.license, 'MIT')
+  assert.strictEqual(plugin.author.name, 'Theo（涛哥）')
+  assert.ok(!Object.prototype.hasOwnProperty.call(plugin, 'skills'))
+  assert.strictEqual(market.plugins.length, 1)
+  assert.strictEqual(market.plugins[0].source, '.')
+  assert.strictEqual(market.plugins[0].name, plugin.name)
+  assert.ok(pkg.files.includes('.cursor-plugin'))
+  const skills = fs.readdirSync(path.join(root, 'skills')).filter((n) =>
+    fs.existsSync(path.join(root, 'skills', n, 'SKILL.md')))
+  assert.ok(skills.length >= 7)
+})

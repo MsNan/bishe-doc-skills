@@ -1,0 +1,19 @@
+{
+  "name": "bishe-doc-skills",
+  "displayName": "毕设文档技能包",
+  "version": "0.1.1",
+  "description": "毕业设计文档 AI 技能包：开题报告、需求分析、系统设计、论文规范、测试与答辩",
+  "author": {
+    "name": "Theo（涛哥）"
+  },
+  "homepage": "https://github.com/MsNan/bishe-doc-skills",
+  "repository": "https://github.com/MsNan/bishe-doc-skills",
+  "license": "MIT",
+  "keywords": [
+    "graduation-project",
+    "thesis",
+    "skills",
+    "bishe",
+    "cursor-skills"
+  ]
+}

@@ -55,6 +55,14 @@ npx -y github:MsNan/bishe-doc-skills --list                          # 查看全
 
 已存在的文件默认跳过，加 `--force` 覆盖；`AGENTS.md` 里你自己的内容会保留，重复安装只更新本工具的区块；用 `--skills` 分批安装时，索引会累积之前装过的技能。
 
+### 用 Cursor 插件导入（可选）
+
+对照 [Cursor 官方插件文档](https://cursor.com/docs/reference/plugins)，仓库根目录提供了 `.cursor-plugin/plugin.json` 和 `.cursor-plugin/marketplace.json`。这是单插件仓库，`source` 为 `.`，技能仍放在 `skills/`，上面的 `npx` 安装器路径不变。
+
+- **推荐**：继续用 `npx` 安装器，同时支持 Cursor / Claude Code / Trae / Codex。
+- **Teams / Enterprise**：Dashboard → Plugins & MCPs → Team Marketplaces → Add Marketplace → Import from Repo，粘贴 `https://github.com/MsNan/bishe-doc-skills`，再在 Customize 里安装。
+- 尚未提交到官方 Cursor Marketplace（提交需要官方审核，需要的话可以再做）。
+
 ### 技能列表
 
 | 技能 | 用途 |
@@ -86,7 +94,7 @@ npx -y github:MsNan/bishe-doc-skills --list                          # 查看全
 ### 开发
 
 ```bash
-npm test   # 校验技能 frontmatter + 运行安装器测试
+npm test   # 校验技能 frontmatter、Cursor 插件清单，并运行安装器测试
 ```
 
 欢迎 PR 补充更多学校通用的规范。新技能放在 `skills/<小写-短横线名>/SKILL.md`，frontmatter 需有 `name`（与目录一致）和说明使用时机的 `description`，可选 `globs`。安装到 Cursor 时会把 `globs` 写成官方 `paths` 列表，没有则不写该字段。
@@ -108,6 +116,8 @@ npx -y github:MsNan/bishe-doc-skills --list
 Default `--tool all` no longer writes `.cursor/skills`, because Cursor also loads `.claude/skills/` and `.agents/skills/` ([docs](https://cursor.com/docs/skills)). Use `--tool cursor` if you only need Cursor (writes official `.cursor/skills/<name>/SKILL.md`; `--global` installs to `~/.cursor/skills`). Optional source `globs` become official `paths`.
 
 The skills tell the AI to extract facts from your real code first (`code-to-thesis`), and never to invent references, test results, data, or screenshots. They are a writing aid for your own work, not a ghostwriting tool; follow your university's rules on AI-assisted writing.
+
+The repo also includes `.cursor-plugin/plugin.json` and `.cursor-plugin/marketplace.json` for optional Cursor plugin import (single-plugin repo, `source` is `.`; skills stay in `skills/`). The `npx` installer remains the recommended path. It has not been submitted to the official Cursor Marketplace.
 
 ## License
 
