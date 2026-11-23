@@ -20,7 +20,8 @@ const HELP = `bishe-doc-skills - 把毕设文档写作技能装进你的项目�
                       源文件里的 globs 会转成官方 paths）。
   -s, --skills <列表> 只安装指定技能，逗号分隔（默认全部）
   -d, --dir <路径>    目标项目目录（默认当前目录）
-  -g, --global        Claude 装到 ~/.claude/skills，Cursor 装到 ~/.cursor/skills（对所有项目生效）
+  -g, --global        Claude 装到 ~/.claude/skills，Cursor 装到 ~/.cursor/skills，
+                      Trae 装到 ~/.trae/skills（若只检测到国内版目录则用 ~/.trae-cn/skills）
   -f, --force         覆盖已存在文件
   -l, --list          列出所有技能
   -h, --help          显示帮助
@@ -85,6 +86,17 @@ function write(file, content, force, stats) {
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, content)
   stats.written.push(file)
+}
+
+// Trae 官方技能目录：项目为 .trae/skills/<name>/SKILL.md
+// 全局：国际版 ~/.trae/skills（https://docs.trae.ai/ide/skills）；
+// 国内版 ~/.trae-cn/skills（https://docs.trae.cn/ide_skills）。
+// 只存在国内版配置目录时用 ~/.trae-cn/skills，否则默认 ~/.trae/skills。
+function traeGlobalSkillsDir(home) {
+  const cn = path.join(home, '.trae-cn')
+  const intl = path.join(home, '.trae')
+  if (fs.existsSync(cn) && !fs.existsSync(intl)) return path.join(cn, 'skills')
+  return path.join(intl, 'skills')
 }
 
 // 在 AGENTS.md 里找自己的区块：只认「整行就是标记」且不在 ``` / ~~~ 代码块里的行。
@@ -152,7 +164,7 @@ function install(o, { skillsDir = SKILLS_DIR, home = os.homedir() } = {}) {
   // Cursor 官方文档（https://cursor.com/docs/skills）：除 .cursor/skills 外，
   // 还会兼容加载 .claude/skills 与 .agents/skills。同时再写一份 .cursor/skills 会让同一套内容出现两次。
   const cursorCompatSkip = tools.includes('cursor') && (tools.includes('claude') || tools.includes('codex'))
-  const stats = { written: [], skipped: [], tools, names, cursorCompatSkip, staleCursorRules: [] }
+  const stats = { written: [], skipped: [], tools, names, cursorCompatSkip, staleCursorRules: [], staleTraeRules: [] }
   const agentsLines = []
   for (const n of names) {
     const { meta, body } = parseSkill(path.join(skillsDir, n, 'SKILL.md'))
@@ -167,7 +179,8 @@ function install(o, { skillsDir = SKILLS_DIR, home = os.homedir() } = {}) {
         const base = o.global ? path.join(home, '.cursor', 'skills') : path.join(o.dir, '.cursor', 'skills')
         write(path.join(base, n, 'SKILL.md'), `---\nname: ${n}\ndescription: ${yamlStr(desc)}\n${cursorPathsFrontmatter(meta.globs)}---\n${body}`, o.force, stats)
       } else if (t === 'trae') {
-        write(path.join(o.dir, '.trae', 'rules', `${n}.md`), `<!-- ${desc} -->\n${body}`, o.force, stats)
+        const base = o.global ? traeGlobalSkillsDir(home) : path.join(o.dir, '.trae', 'skills')
+        write(path.join(base, n, 'SKILL.md'), skillMd, o.force, stats)
       } else if (t === 'codex') {
         write(path.join(o.dir, '.agents', 'skills', n, 'SKILL.md'), skillMd, o.force, stats)
         agentsLines.push([n, `- \`${n}\`：${desc}（详见 .agents/skills/${n}/SKILL.md）`])
@@ -179,6 +192,13 @@ function install(o, { skillsDir = SKILLS_DIR, home = os.homedir() } = {}) {
     for (const n of names) {
       const stale = path.join(o.dir, '.cursor', 'rules', n + '.mdc')
       if (fs.existsSync(stale)) stats.staleCursorRules.push(stale)
+    }
+  }
+  // 旧版 --tool trae 写入的 .trae/rules 仍会被 Trae 当规则加载，与官方技能目录重复；只提示不自动删除
+  if (tools.includes('trae')) {
+    for (const n of names) {
+      const stale = path.join(o.dir, '.trae', 'rules', n + '.md')
+      if (fs.existsSync(stale)) stats.staleTraeRules.push(stale)
     }
   }
   if (agentsLines.length) {
@@ -208,6 +228,10 @@ function main(argv = process.argv.slice(2)) {
     if (s.staleCursorRules && s.staleCursorRules.length) {
       console.log(`⚠️  检测到先前安装留下的 ${s.staleCursorRules.length} 个 .cursor/rules 文件，Cursor 还会从技能目录加载同一内容，建议删掉以免重复：`)
       for (const f of s.staleCursorRules) console.log('   ' + f)
+    }
+    if (s.staleTraeRules && s.staleTraeRules.length) {
+      console.log(`⚠️  检测到先前安装留下的 ${s.staleTraeRules.length} 个 .trae/rules 文件，Trae 还会从 .trae/skills 加载同一内容，建议删掉以免规则和技能重复：`)
+      for (const f of s.staleTraeRules) console.log('   ' + f)
     }
     console.log('☕ 觉得有用欢迎 Star: https://github.com/MsNan/bishe-doc-skills')
   } catch (e) {
