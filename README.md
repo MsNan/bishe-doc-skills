@@ -4,9 +4,9 @@
 
 **毕业设计文档 AI 技能包 · AI skills for Chinese CS graduation projects**
 
-让 Claude Code / Cursor / Trae / Codex 按中国高校的格式规范，帮你写开题报告、需求分析、系统设计、测试章节和答辩材料——并且**不编造文献和测试数据**。
+让 Claude Code / Cursor / Trae / Codex 按中国高校的格式规范，帮你写开题报告、任务书、中期检查、需求分析、系统设计、测试章节和答辩材料——并且**不编造文献和测试数据**。
 
-[![Test](https://github.com/MsNan/bishe-doc-skills/actions/workflows/test.yml/badge.svg)](https://github.com/MsNan/bishe-doc-skills/actions/workflows/test.yml) ![license](https://img.shields.io/badge/license-MIT-green) ![skills](https://img.shields.io/badge/skills-7-blue) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
+[![Test](https://github.com/MsNan/bishe-doc-skills/actions/workflows/test.yml/badge.svg)](https://github.com/MsNan/bishe-doc-skills/actions/workflows/test.yml) ![license](https://img.shields.io/badge/license-MIT-green) ![skills](https://img.shields.io/badge/skills-9-blue) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 
 [中文](#中文) · [English](#english)
 
@@ -68,7 +68,9 @@ npx -y github:MsNan/bishe-doc-skills --list                          # 查看全
 
 | 技能 | 用途 |
 | --- | --- |
-| `thesis-proposal` | 开题报告、任务书：选题意义、研究现状、技术路线、进度表 |
+| `thesis-proposal` | 开题报告、选题申请：选题意义、研究现状、技术路线、进度表 |
+| `task-book` | 任务书：主要任务与要求、可量化技术指标、应完成成果、进度与参考资料 |
+| `midterm-check` | 中期检查：进度对照表、已完成工作、问题与风险、下阶段计划和中期答辩提纲 |
 | `requirements-analysis` | 可行性分析、角色与用例、用例描述表、功能/非功能需求 |
 | `system-design` | 总体架构、功能模块图、E-R 图、三线表数据库设计、接口与时序图 |
 | `code-to-thesis` | 从已有代码提取技术栈、模块清单、数据表、接口、核心代码片段、截图清单 |
@@ -84,6 +86,8 @@ npx -y github:MsNan/bishe-doc-skills --list                          # 查看全
 - 「根据 docs/thesis-materials.md 写第 4 章数据库设计」
 - 「把这些参考文献整理成 GB/T 7714 格式」
 - 「给登录和订单模块设计测试用例」
+- 「按学校任务书模板，根据开题内容填技术指标和进度」
+- 「对照任务书写中期检查表，标出落后的部分和下一步计划」
 - 「扮演答辩老师，根据我的论文提问」
 
 配合 [bishe-kit](https://github.com/MsNan/bishe-kit)（Vue3 后台 + uni-app + Express 毕设脚手架）使用效果更好。
@@ -102,7 +106,7 @@ npm test   # 校验技能 frontmatter、Cursor 插件清单，并运行安装器
 
 ## English
 
-**bishe-doc-skills** is a set of Chinese-language AI agent skills for writing computer-science graduation project ("毕设") documents in the format Chinese universities expect: thesis proposal, requirements analysis, system design (E-R diagrams, three-line tables), GB/T 7714-2015 references, test chapter, and defense preparation.
+**bishe-doc-skills** is a set of Chinese-language AI agent skills for writing computer-science graduation project ("毕设") documents in the format Chinese universities expect: thesis proposal, official task book (任务书), mid-term progress check, requirements analysis, system design (E-R diagrams, three-line tables), GB/T 7714-2015 references, test chapter, and defense preparation.
 
 Install into any project for Claude Code, Cursor, Trae, or Codex (`AGENTS.md`):
 

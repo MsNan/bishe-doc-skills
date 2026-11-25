@@ -105,6 +105,9 @@ test('命令行：通过软链接调用也能运行（模拟 npx），错误时�
   assert.strictEqual(r.status, 1)
   assert.match(r.stderr, /未知参数/)
   assert.match(execFileSync(process.execPath, [CLI, '--list'], { encoding: 'utf8' }), /defense-prep/)
+  const listed = execFileSync(process.execPath, [CLI, '--list'], { encoding: 'utf8' })
+  assert.match(listed, /task-book/)
+  assert.match(listed, /midterm-check/)
 })
 
 test('-s 分批安装：AGENTS.md 索引累积而不是被覆盖，内容不变时不重写', () => {

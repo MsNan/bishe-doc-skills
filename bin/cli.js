@@ -7,7 +7,7 @@ const path = require('path')
 const SKILLS_DIR = path.join(__dirname, '..', 'skills')
 const TOOLS = ['claude', 'cursor', 'trae', 'codex']
 const MARK = 'bishe-doc-skills'
-const HELP = `bishe-doc-skills - 把毕设文档写作技能装进你的项目（开题报告/需求分析/系统设计/论文规范/测试/答辩）
+const HELP = `bishe-doc-skills - 把毕设文档写作技能装进你的项目（开题报告/任务书/中期检查/需求分析/系统设计/论文规范/测试/答辩）
 
 用法:
   npx -y github:MsNan/bishe-doc-skills [选项]
@@ -133,7 +133,7 @@ function upsertAgentsBlock(file, entries) {
     if (m) map.set(m[1], m[0])
   }
   for (const [n, line] of entries) map.set(n, line)
-  const body = [start, '## 毕设文档技能', '写开题报告、论文章节、测试或答辩材料前，先阅读对应技能文件：', ...[...map.keys()].sort().map(k => map.get(k)), end]
+  const body = [start, '## 毕设文档技能', '写开题报告、任务书、中期检查、论文章节、测试或答辩材料前，先阅读对应技能文件：', ...[...map.keys()].sort().map(k => map.get(k)), end]
   let next
   if (found) {
     // 按 \n 切行，CRLF 文件的每行末尾还带着 \r；新写的行沿用文件原来的换行风格

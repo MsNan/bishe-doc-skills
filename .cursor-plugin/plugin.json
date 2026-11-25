@@ -1,8 +1,8 @@
 {
   "name": "bishe-doc-skills",
   "displayName": "毕设文档技能包",
-  "version": "0.1.1",
-  "description": "毕业设计文档 AI 技能包：开题报告、需求分析、系统设计、论文规范、测试与答辩",
+  "version": "0.2.0",
+  "description": "毕业设计文档 AI 技能包：开题报告、任务书、中期检查、需求分析、系统设计、论文规范、测试与答辩",
   "author": {
     "name": "Theo（涛哥）"
   },
